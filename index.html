@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SPIバトル</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1d2433;--sub:#667085;--ac:#4f46e5;--ok:#16a34a;--ng:#dc2626;--bd:#e2e5ee;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141c;--card:#1c2030;--tx:#eef0f6;--sub:#9aa3b8;--ac:#818cf8;--ok:#4ade80;--ng:#f87171;--bd:#2c3248;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12141c;--card:#1c2030;--tx:#eef0f6;--sub:#9aa3b8;--ac:#818cf8;--ok:#4ade80;--ng:#f87171;--bd:#2c3248;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.6}
+main{max-width:760px;margin:0 auto;padding:16px;display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px}
+h1{font-size:22px;margin:0}h2{font-size:15px;margin:0 0 8px;color:var(--sub)}
+input{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font-size:16px}
+label{font-size:13px;color:var(--sub);display:block;margin:8px 0 4px}
+button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:12px;text-align:left}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac);text-align:center;font-weight:700;width:100%;margin-top:12px}
+#ch{display:grid;gap:8px;margin-top:12px}
+#ch button.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--card))}
+#ch button.ng{border-color:var(--ng);background:color-mix(in srgb,var(--ng) 18%,var(--card))}
+#bar{height:6px;background:var(--bd);border-radius:3px;overflow:hidden}#bar i{display:block;height:100%;background:var(--ac)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)}
+.row:last-child{border:0}.me{font-weight:700;color:var(--ac)}.sm{font-size:13px;color:var(--sub)}
+.hide{display:none}#ex{margin-top:12px;font-size:14px}
+.opt{position:relative;overflow:hidden;display:flex;justify-content:space-between;gap:8px;align-items:center}
+button:disabled{color:var(--tx)}.fill{position:absolute;left:0;top:0;bottom:0;background:var(--ac);opacity:.2;transition:width .7s}
+.ot,.cnt{position:relative}.cnt{font-size:12px;color:var(--sub);white-space:nowrap}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--card));animation:pop .5s}
+.opt.ng{border-color:var(--ng);background:color-mix(in srgb,var(--ng) 18%,var(--card));animation:shake .4s}
+.opt.dim{opacity:.6}.opt.pick{border-color:var(--ac)}
+@keyframes pop{50%{transform:scale(1.03)}}@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.tools button{padding:8px 12px;font-size:14px;text-align:center}.tools button.on{border-color:var(--ac)}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;background:var(--ac);color:#fff;margin-right:6px}
+.badge{display:inline-block;padding:4px 10px;border:1px solid var(--bd);border-radius:99px;margin:4px 6px 0 0;font-size:14px}
+#q{white-space:pre-line}.rv{border-top:1px solid var(--bd);padding:8px 0;font-size:14px}
+</style></head><body><div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+const hash=s=>{let h=1779033703;for(const c of s){h=Math.imul(h^c.charCodeAt(0),3432918353);h=h<<13|h>>>19}return h>>>0};
+function mkR(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let R;const ri=(a,b)=>a+Math.floor(R()*(b-a+1)),pick=a=>a[ri(0,a.length-1)];
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=ri(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+const gcd=(a,b)=>b?gcd(b,a%b):a,fr=(n,d)=>{const g=gcd(n,d);return d/g==1?""+n/g:n/g+"/"+d/g};
+const C=(n,k)=>{let r=1;for(let i=0;i<k;i++)r=r*(n-i)/(i+1);return Math.round(r)};
+function num(q,ans,step,unit,exp){const s=new Set([ans]);while(s.size<4){const v=ans+pick([-3,-2,-1,1,2,3])*step;if(v>0)s.add(v)}
+ const c=shuf([...s]);return{q,c:c.map(v=>v+unit),a:c.indexOf(ans),e:exp}}
+const G={
+profit(){const x=ri(5,20)*100,p=pick([10,20,25,30,40]),a=x*(100+p)/100;
+ return num(`原価${x}円の商品に${p}％の利益を見込んで定価をつけた。定価はいくらか。`,a,x/10,"円",`${x}×(1＋${p}/100)＝${a}円`)},
+speed(){const d=120,l=[20,24,30,40,60],a=pick(l);let b;do b=pick(l);while(b==a);
+ return num(`A地点とB地点は${d}km離れている。行きは時速${a}km、帰りは時速${b}kmで走った。往復にかかった時間は何時間か。`,d/a+d/b,1,"時間",`${d}÷${a}＋${d}÷${b}＝${d/a}＋${d/b}＝${d/a+d/b}時間`)},
+work(){const[x,y]=pick([[6,3],[12,6],[10,15],[20,30],[12,4],[15,10],[30,20]]),a=x*y/(x+y);
+ return num(`ある仕事をAは1人で${x}日、Bは1人で${y}日で終える。2人で一緒に行うと何日で終わるか。`,a,1,"日",`仕事全体を1として 1/${x}＋1/${y}＝${x+y}/${x*y}。よって ${x*y}÷${x+y}＝${a}日`)},
+mix(){const m=ri(1,4),n=5-m,a=ri(1,4)*5,b=ri(1,4)*5,r=(m*a+n*b)/5;
+ return num(`濃度${a}％の食塩水${m*100}gと、濃度${b}％の食塩水${n*100}gを混ぜた。できた食塩水の濃度は何％か。`,r,1,"％",`食塩は ${m}×${a}＋${n}×${b}（÷100×100g）。全体500gなので ${m*a+n*b}÷5＝${r}％`)},
+comb(){const n=ri(5,8),k=pick([2,3]),a=C(n,k);
+ return num(`${n}人の中から${k}人の委員を選ぶ。選び方は何通りか。`,a,Math.max(1,Math.round(a/6)),"通り",`${n}C${k}＝${a}通り`)},
+prob(){const r=ri(2,5),w=ri(2,5),T=C(r+w,2),a=fr(C(r,2),T),s=new Set([a,fr(C(r,2)+1,T),fr(C(w,2),T),fr(r*w,T)]);
+ while(s.size<4)s.add(fr(ri(1,T-1),T));const c=shuf([...s].slice(0,4).includes(a)?[...s].slice(0,4):[a,...[...s].slice(1,4)]);
+ return{q:`赤玉${r}個、白玉${w}個の入った袋から、同時に2個取り出す。2個とも赤玉である確率はどれか。`,c,a:c.indexOf(a),e:`${r}C2÷${r+w}C2＝${C(r,2)}/${T}＝${a}`}}
+};
+const V=[["「寡黙」の対義語はどれか。","饒舌","無口","沈黙","控えめ","寡黙＝口数が少ない。反対は口数が多い「饒舌」。"],
+["「抽象」の対義語はどれか。","具体","概念","一般","観念","抽象⇔具体。"],
+["「過疎」の対義語はどれか。","過密","都市","農村","孤立","人口が少ない過疎⇔多すぎる過密。"],
+["「雄弁」の対義語はどれか。","訥弁","多弁","詭弁","能弁","雄弁（話が上手）⇔訥弁（話が下手）。"],
+["「楽観」の対義語はどれか。","悲観","悲痛","消極","憂鬱","楽観⇔悲観。"],
+["「顕在」の対義語はどれか。","潜在","存在","実在","現在","顕在（表に現れる）⇔潜在。"],
+["「医者：病院」と同じ関係の組はどれか。","教師：学校","本：読書","魚：海","鉛筆：消しゴム","職業と、その人が働く場所の関係。"],
+["「概略」と最も近い意味の語はどれか。","大要","詳細","結論","前提","概略＝おおよその内容＝大要。"]];
+Object.assign(G,{
+ratio(){const T=ri(4,20)*20,p=pick([20,25,40,60]),n=T*p/100;
+ return num(`ある学校で、女子は全生徒の${p}％にあたる${n}人である。全生徒は何人か。`,T,20,"人",`全体＝${n}÷(${p}/100)＝${T}人`)},
+age(){const c=ri(5,12),y=ri(2,6),f=3*c+2*y,x=f-2*c;
+ return num(`現在、父は${f}歳、子は${c}歳である。父の年齢が子の年齢のちょうど2倍になるのは何年後か。`,x,1,"年後",`x年後に ${f}＋x＝2×(${c}＋x)。よって x＝${f}－${2*c}＝${x}年後`)},
+venn(){let n,a,b,c,z;do{n=ri(30,50);c=ri(3,8);a=ri(15,25);b=ri(12,22);z=n-(a+b-c)}while(z<2);
+ return num(`${n}人に聞いたところ、Aが好きな人は${a}人、Bが好きな人は${b}人、両方好きな人は${c}人だった。どちらも好きでない人は何人か。`,z,1,"人",`少なくとも一方が好き＝${a}＋${b}－${c}＝${a+b-c}人。よって ${n}－${a+b-c}＝${z}人`)},
+seq(){const a=ri(1,5),d0=ri(1,3),e=pick([1,2]),t=[a];let d=d0;for(let i=0;i<5;i++){t.push(t[i]+d);d+=e}
+ return num(`次の数列の？に入る数はどれか。\n${t.slice(0,5).join(", ")}, ？`,t[5],1,"",`隣り合う差は ${[0,1,2,3].map(i=>d0+e*i).join(", ")} と${e}ずつ増える。次の差は${d0+e*4}なので ${t[4]}＋${d0+e*4}＝${t[5]}`)}});
+V.push(["「寛容」の対義語はどれか。","狭量","寛大","温厚","従順","寛容（心が広い）⇔狭量（心が狭い）。"],
+["「簡素」の対義語はどれか。","華美","質素","簡潔","平易","簡素（飾りがない）⇔華美（派手で美しい）。"],
+["「需要」の対義語はどれか。","供給","消費","需給","要求","需要（買いたい）⇔供給（売りたい）。"],
+["「拡大」の対義語はどれか。","縮小","拡張","増大","発展","拡大⇔縮小。"],
+["「勤勉」と最も近い意味の語はどれか。","精励","怠惰","寛容","平凡","勤勉＝まじめに励む＝精励。怠惰は反対。"],
+["「本末転倒」の意味として最も適切なものはどれか。","大事なことと些細なことを取り違える","最後まで諦めない","物事が順調に進む","自分の考えを曲げない","本（根本）と末（枝葉）が逆になること。"],
+["「鳥：翼」と同じ関係の組はどれか。","魚：ひれ","犬：猫","空：雲","机：椅子","全体と、その一部分の関係。"],
+["「蛇足」の意味として最も適切なものはどれか。","無用な付け足し","不足している部分","危険なもの","貴重なもの","蛇に足を描き足して台無しにした故事から、余計なもの。"],
+["「画竜点睛を欠く」の意味はどれか。","最後の肝心な仕上げが足りない","描き方が上手すぎる","計画が壮大すぎる","最初に失敗する","竜の絵に瞳を入れ忘れる＝肝心な仕上げが欠けること。"]);
+const FM={profit:"定価＝原価×(1＋利益率)／売値＝定価×(1－割引率)／利益＝売値－原価",speed:"時間＝距離÷速さ／距離＝速さ×時間／速さ＝距離÷時間。往復の平均速度は「総距離÷総時間」",work:"全体の仕事量を1とおく。1人でx日・y日かかる2人が一緒に行うと、1÷(1/x＋1/y)＝xy÷(x＋y)日",mix:"食塩の量＝食塩水の重さ×濃度／混ぜた濃度＝(食塩の合計)÷(食塩水の合計)×100",comb:"組合せ nCk＝n×(n－1)×…（k個）÷(k×(k－1)×…×1)／順列 nPk＝n×(n－1)×…（k個）",prob:"確率＝(条件に合う場合の数)÷(全体の場合の数)／同時にk個取る場合の数は nCk",ratio:"比べる量＝もとにする量×割合／もとにする量＝比べる量÷割合",age:"年齢の差は何年たっても変わらない。x年後は全員がx歳ずつ増えるので、式を立ててxを求める",venn:"A∪B＝A＋B－A∩B／どちらでもない人数＝全体－A∪B",seq:"隣り合う数の差（階差）を調べる。階差が等差なら、次の階差を足して次の項を求める"};
+const vf=t=>/対義語/.test(t)?"対義語：反対の意味・対になる語を探す。漢字1字ずつの意味に分解して考える（例：具体⇔抽象）":/同じ関係/.test(t)?"二語の関係：全体と部分／職業と場所／原因と結果 などの型に当てはめ、同じ型の組を選ぶ":/近い意味/.test(t)?"類義語：漢字を分解して意味をつかみ、言い換えて文が成り立つか確かめる":"語句の意味：故事や漢字の成り立ちから意味を考える";
+function build(code){R=mkR(hash(code));const ts=shuf(Object.keys(G)).slice(0,7),vs=shuf(V).slice(0,3);let vi=0;
+ const qs=shuf([...ts,"v","v","v"]).map(t=>{if(t!=="v"){const o=G[t]();o.f=FM[t];return o}const v=vs[vi++],c=shuf(v.slice(1,5));return{q:v[0],c,a:c.indexOf(v[1]),e:v[5],f:vf(v[0])}});
+ qs.forEach(q=>q.m=1);qs[ri(2,6)].m=1.5;qs[qs.length-1].m=2;return qs}
+const h=React.createElement,{useState,useEffect,useRef}=React,LIM=25,REV=15;
+const D=(c,...k)=>{const p=k[0]&&k[0].constructor===Object&&!k[0].$$typeof?k.shift():{};return h("div",{className:c,...p},...k)};
+const rand=()=>Math.random().toString(36).slice(2,6);
+const AV=["🦊","🐼","🐯","🐸","🐧","🦁","🐙","🐵","🦄","🐺"];
+const TT=[[1700,"レジェンド👑"],[1200,"マスター🔥"],[800,"エース⚡"],[400,"挑戦者🚀"],[0,"見習い🌱"]],title=s=>TT.find(t=>s>=t[0])[1];
+const ld=()=>{try{return JSON.parse(localStorage.getItem("spi")||"{}")}catch(e){return{}}},sv=o=>{try{localStorage.setItem("spi",JSON.stringify(o))}catch(e){}};
+function App(){
+ const[phase,setPhase]=useState("lobby"),[name,setName]=useState(""),[code,setCode]=useState(rand),[av]=useState(()=>AV[Math.floor(Math.random()*AV.length)]),[rd,setRd]=useState(0),[rdy,setRdy]=useState(false),[joined,setJoined]=useState(false);
+ const[Q,setQ]=useState([]),[qi,setQi]=useState(0),[score,setScore]=useState(0),[streak,setStreak]=useState(0),[sel,setSel]=useState(null),[rev,setRev]=useState(false),[left,setLeft]=useState(LIM),[rl,setRl]=useState(REV);
+ const[hide,setHide]=useState([]),[dbl,setDbl]=useState(false),[items,setItems]=useState({f:2,d:1}),[log,setLog]=useState([]),[nx,setNx]=useState(null),[room,setRoom]=useState(null),[peers,setPeers]=useState([]);
+ const t0=useRef(0),t1=useRef(0),aL=useRef(0),nm=name.trim()||"ゲスト",q=Q[qi];
+ async function join(){const c=code.trim().toLowerCase().replace(/[^a-z0-9_.-]/g,"")||"main";setCode(c);
+  try{const r=await window.claude?.use("room");if(r){const nr=await r.join(c);nr.onPeers(ch=>setPeers([...ch.peers]));setRoom(nr)}}catch(e){}setJoined(true)}
+ function startGame(){setQ(build(code+":"+rd));setQi(0);setScore(0);setStreak(0);setSel(null);setRev(false);setHide([]);setDbl(false);setItems({f:2,d:1});setLog([]);setNx(null);setLeft(LIM);t0.current=Date.now();setPhase("play")}
+ function answer(i){if(sel!==null)return;aL.current=i<0?0:Math.max(0,LIM-(Date.now()-t0.current)/1000);setSel(i)}
+ function doReveal(){const ok=sel===q.a;let g=0,pen=0;
+  if(ok)g=Math.round((100+Math.round(aL.current/LIM*50))*q.m*(dbl?2:1)*(1+Math.min(streak,4)*0.1));else if(dbl)pen=50;
+  setScore(s=>Math.max(0,s+g-pen));setStreak(ok?streak+1:0);setLog(l=>[...l,{sel,ok,g:g-pen,dbl,left:aL.current}]);setRev(true);t1.current=Date.now();setRl(REV)}
+ function next(){if(qi+1<Q.length){setQi(qi+1);setSel(null);setRev(false);setHide([]);setDbl(false);setNx(null);setLeft(LIM);t0.current=Date.now()}else setPhase("end")}
+ const P=peers.filter(p=>p.presence&&p.presence.name!=null).map(p=>({me:p.sameTab,n:String(p.presence.name),av:String(p.presence.av||"🙂"),s:+p.presence.score||0,q:+p.presence.qi||0,ph:p.presence.ph,rdy:!!p.presence.rdy,ans:p.presence.ans==null?null:+p.presence.ans,nx:p.presence.nx==null?null:+p.presence.nx}));
+ const mine={me:true,n:nm,av,s:score,q:qi,ph:phase,rdy,ans:sel,nx};
+ const rows=(P.some(r=>r.me)?P.map(r=>r.me?mine:r):[...P,mine]);
+ const lp=rows.filter(r=>r.ph==="lobby"),allReady=phase==="lobby"&&joined&&rdy&&lp.every(r=>r.rdy);
+ const act=phase==="play"?rows.filter(r=>r.ph==="play"&&r.q===qi):[],allAns=act.length>0&&act.every(r=>r.ans!=null),allNx=rev&&act.every(r=>r.nx===qi);
+ useEffect(()=>{if(room)room.presence({name:nm,av,score,qi,ph:phase,rdy,ans:sel,nx}).catch(()=>{})},[room,nm,score,qi,phase,rdy,sel,nx]);
+ useEffect(()=>{if(!allReady)return;const t=setTimeout(startGame,2500);return()=>clearTimeout(t)},[allReady,lp.length]);
+ useEffect(()=>{if(phase!=="play")return;const t=setInterval(()=>{const n=Date.now();if(!rev){const l=LIM-(n-t0.current)/1000;setLeft(l);if(l<=0&&sel===null)answer(-1)}else setRl(REV-(n-t1.current)/1000)},100);return()=>clearInterval(t)},[phase,qi,sel,rev]);
+ useEffect(()=>{if(phase==="play"&&!rev&&sel!==null&&(allAns||left<=0))doReveal()},[phase,rev,sel,allAns,left<=0]);
+ useEffect(()=>{if(phase==="play"&&rev&&(allNx||rl<=0))next()},[phase,rev,allNx,rl<=0]);
+ useEffect(()=>{if(phase!=="end")return;const s=ld();sv({plays:(s.plays||0)+1,best:Math.max(s.best||0,score),ok:(s.ok||0)+log.filter(l=>l.ok).length,all:(s.all||0)+log.length})},[phase]);
+ const fifty=()=>{if(items.f<1||sel!==null||hide.length)return;setHide([0,1,2,3].filter(i=>i!==q.a).sort(()=>Math.random()-.5).slice(0,2));setItems({...items,f:items.f-1})};
+ const dtog=()=>{if(sel!==null)return;if(dbl){setDbl(false);setItems({...items,d:items.d+1})}else if(items.d>0){setDbl(true);setItems({...items,d:items.d-1})}};
+ const sorted=[...rows].sort((a,b)=>b.s-a.s||b.q-a.q),myRank=sorted.findIndex(r=>r.me)+1;
+ const stat=r=>r.ph==="lobby"?(r.rdy?"✅準備OK":"待機中"):r.ph==="end"?"完了":r.q===qi&&phase==="play"?(rev?(r.ans===q.a?"⭕":"❌"):r.ans!=null?"回答済み":"考え中…"):"第"+(r.q+1)+"問";
+ const board=D("card",h("h2",null,"ライブ順位 ",h("span",{className:"sm"},joined?"部屋: "+code:"")),
+  !joined?D("sm",null,"入室すると表示されます"):sorted.map((r,i)=>D("row"+(r.me?" me":""),{key:i},h("span",null,`${i+1}位 ${r.av} ${r.n}${r.me?"（あなた）":""}`),h("span",null,`${r.s}点 ・ ${stat(r)}`))));
+ let main;
+ if(phase==="lobby"){const s=ld();main=D("card",
+  !joined?[h("label",{key:1},"ニックネーム"),h("input",{key:2,value:name,maxLength:12,placeholder:"例：たろう",onChange:e=>setName(e.target.value)}),
+   h("label",{key:3},"部屋コード（友達と同じコード）"),h("input",{key:4,value:code,maxLength:12,onChange:e=>setCode(e.target.value)}),
+   h("button",{key:5,className:"p",onClick:join},"入室する")]:
+  [h("h2",{key:1},`${av} ${nm} さん、準備ができたら押してね`),D("sm",{key:2},`部屋にいる人：${lp.length}人（全員が準備OKになると2.5秒後に同時スタート）`),
+   h("button",{key:3,className:"p",onClick:()=>setRdy(!rdy)},rdy?(allReady?"まもなく開始…":"準備OK！（もう一度押すと解除）"):"準備OK")],
+  D("rv",null,"🎮 ルール：全員が同じ10問を同時に解きます。速く正解するほど高得点。連続正解でコンボ倍率UP。",h("br"),"💡 50:50（2回）… 誤答を2つ消す／🎲 ×2（1回）… 得点2倍、ただし不正解は−50点。",h("br"),"⭐ ラッキー問題は×1.5、最終問題のボスは×2！"),
+  s.plays?D("sm",null,`あなたの記録：${s.plays}回プレイ・ハイスコア${s.best}点・正答率${Math.round(s.ok/s.all*100)}％`):null)}
+ else if(phase==="play"){const cnt=i=>act.filter(r=>r.ans===i).length,un=act.filter(r=>r.ans===-1).length,lg=log[log.length-1];
+  main=D("card",
+  D("row",h("span",{className:"sm"},`第${qi+1}問 / ${Q.length}`),h("span",null,q.m>1?h("span",{className:"tag"},q.m===2?"👹 ボス ×2":"⭐ ラッキー ×1.5"):null,streak?h("span",{className:"tag"},`🔥${streak}連続`):null,h("b",null,score+"点"))),
+  D("",{id:"bar"},h("i",{style:{width:Math.max(0,rev?100:left/LIM*100)+"%",background:!rev&&left<8?"var(--ng)":""}})),
+  D("",{id:"q",style:{marginTop:12,fontSize:17}},q.q),
+  D("",{style:{display:"grid",gap:8,marginTop:12}},q.c.map((t,i)=>{const n=cnt(i),hid=hide.includes(i);
+   return h("button",{key:i,className:"opt "+(rev?(i===q.a?"ok":i===sel?"ng":"dim"):sel===i?"pick":""),disabled:sel!==null||hid,style:hid?{visibility:"hidden"}:null,onClick:()=>answer(i)},
+    rev&&h("span",{className:"fill",style:{width:(act.length?n/act.length*100:0)+"%"}}),h("span",{className:"ot"},`${"ABCD"[i]}. ${t}`),
+    rev&&h("span",{className:"cnt"},`${n}人 `+act.filter(r=>r.ans===i).map(r=>r.av).join("")))})),
+  !rev&&D("tools",h("button",{onClick:fifty,disabled:sel!==null||items.f<1||hide.length>0},`💡 50:50 ×${items.f}`),h("button",{className:dbl?"on":"",onClick:dtog,disabled:sel!==null||(!dbl&&items.d<1)},dbl?"🎲 ×2 発動中":`🎲 ×2 ×${items.d}`)),
+  !rev&&sel!==null&&D("sm",{style:{marginTop:10}},`回答しました。他の人を待っています…（${act.filter(r=>r.ans!=null).length}/${act.length}人）`),
+  rev&&D("",{id:"ex"},h("b",null,sel===q.a?`⭕ 正解！ +${lg.g}点${lg.dbl?"（×2）":""}`:sel<0?`⏰ 時間切れ${lg.dbl?" −50点":""}`:`❌ 不正解${lg.dbl?" −50点":""}`),
+   un?D("sm",null,`未回答 ${un}人`):null,D("",{style:{marginTop:6}},"📐 公式：",q.f),D("",{style:{marginTop:6}},"💬 解説：",q.e)),
+  rev&&h("button",{className:"p",onClick:()=>setNx(qi)},(nx===qi?"待機中…":qi+1<Q.length?"次へ":"結果へ")+`（${Math.max(0,Math.ceil(rl))}）`))}
+ else{const okN=log.filter(l=>l.ok).length;let c=0,ms=0;log.forEach(l=>{c=l.ok?c+1:0;ms=Math.max(ms,c)});
+  const bd=[];if(okN===log.length)bd.push("💯 全問正解");if(ms>=5)bd.push(`🔥 ${ms}連続正解`);if(log.some(l=>l.ok&&l.left>=LIM*.8))bd.push("⚡ 即答");if(log.some(l=>l.dbl&&l.ok))bd.push("🎲 ×2成功");if(myRank===1&&rows.length>1)bd.push("👑 1位");
+  main=D("card",h("h2",null,"結果発表"),D("",{style:{fontSize:22,fontWeight:700}},`${score}点 ／ ${title(score)}`),D("sm",null,`正解 ${okN}/${log.length}問・現在 ${myRank}位 / ${rows.length}人`),
+   D("",null,bd.map((b,i)=>h("span",{key:i,className:"badge"},b))),h("h2",{style:{marginTop:16}},"全問題の解説"),
+   Q.map((x,i)=>{const l=log[i];return D("rv",{key:i},h("b",null,`${l&&l.ok?"⭕":"❌"} 第${i+1}問${x.m>1?(x.m===2?"（ボス）":"（ラッキー）"):""}`),D("",{style:{whiteSpace:"pre-line"}},x.q),
+    D("sm",null,`正解：${x.c[x.a]}／あなたの回答：${l&&l.sel>=0?x.c[l.sel]:"なし"}${l?`（${l.g>=0?"+":""}${l.g}点）`:""}`),D("",null,"📐 ",x.f),D("",null,"💬 ",x.e))}),
+   h("button",{className:"p",onClick:()=>{setRd(rd+1);setRdy(false);setPhase("lobby")}},"もう一度（新しい問題で再戦）"))}
+ return h("main",null,D("card",h("h1",null,"SPIバトル"),D("sm",null,"全員同時スタート・同じ問題を競うSPI対策バトル")),main,board)}
+ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+</script></body></html>
